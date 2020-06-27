@@ -1,0 +1,40 @@
+server:
+  port: 7000
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848 # 将gateway注册到nacos
+    gateway:
+      discovery:
+        locator:
+          enabled: true # 让gateway从nacos中获取服务信息
+#     写死ip：基础版 | 配合 nacos 强化版 | 只写上面的 简写版
+      routes: # 路由数组 【路由就是指定当请求满足什么条件时转到那个微服务】
+        - id: product_route    # localhost:7000/product-serv/product/1
+          # uri指的是 请求最终被转发的地址，这里是nacos中的服务名称
+          uri: lb://service-product # lb 指的是从 nacos 中按照名称获取微服务，并遵循负载均衡策略
+          order: 1 # 优先级，数字越小优先级越高
+          predicates:  # 断言
+            - Path=/product-serv/**
+#            - Before=2019-11-28T00:00:00.000+08:00
+#            - Method=Post
+#            - Age=18,60 # 自定义
+          filters:
+            - StripPrefix=1
+#            - Log=true,false # 自定义
+        - id: order_route
+          uri: lb://service-order
+          order: 1
+          predicates:
+            - Path=/order-serv/**
+          filters:
+            - StripPrefix=1
+  zipkin:
+    base-url: http://127.0.0.1:9411/  #zipkin server的请求地址
+    discoveryClientEnabled: false #让 nacos 把它当成一个URL，而不要当做服务名
+  sleuth:
+    sampler:
+      probability: 1.0  #采样的百分比
